@@ -63,15 +63,16 @@ struct Profile: View {
     var body: some View {
         VStack() {
             Header()
-            VStack {            
+            VStack {
                 HStack {
                     Spacer()
                     ProfileStackedText(label: "Followers", value: String(follower_count))
                     Spacer()
                     profile_picture
                         .resizable()
-                        .frame(width: 100, height: 100).clipShape(RoundedRectangle(cornerSize: CGSize(width: 20, height: 20)))
-                        .zIndex(1)
+                        .frame(width: 100, height: 100)
+                        .clipShape(
+                            RoundedRectangle(cornerSize: CGSize(width: 20, height: 20)))
                     Spacer()
                     ProfileStackedText(label: "Following", value: String(following_count))
                     Spacer()
