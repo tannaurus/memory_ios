@@ -10,16 +10,8 @@ import SwiftUI
 struct ContentView: View {
    
     var body: some View {
-        VStack(alignment: .leading) {
-            Text("Coffee & Tea Collective").font(.title)
-            HStack() {
-                Text("Tanner").font(.subheadline)
-                Spacer()
-                Text("Developer").font(.subheadline)
-            }
-            MapView().frame(height: 200)
-        }
-        .padding()
+        Profile(profile_picture: Image("profile"), follower_count: 432, following_count: 341, user_name: "Tanner Gill", user_bio: "Developer @ 1Password")
+        FooterNavigator()
     }
 }
 
