@@ -6,24 +6,6 @@
 //
 
 import SwiftUI
-import Foundation
-
-struct Story: Codable, Identifiable {
-    let id = UUID()
-    
-    var title: String;
-    var preview: String;
-    var created_at: String;
-    var updated_at: String;
-    
-    private enum CodingKeys: String, CodingKey {
-        case title
-        case preview
-        case created_at
-        case updated_at
-    }
-}
-
 
 struct StoryList: View {
     var stories: [Story]
@@ -35,7 +17,6 @@ struct StoryList: View {
             print("Viewing", story.title)
         }
     
-        
         var body: some View {
             VStack {
                 HStack {
@@ -44,22 +25,29 @@ struct StoryList: View {
                     Text(story.title)
                     Spacer()
                 }
-                Button(action: viewStory) {
-                    Image(story.preview)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .clipShape(
-                                RoundedRectangle(cornerSize: CGSize(width: 10, height: 10))
-                        )
-
-                }
+                Image(story.preview)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .clipShape(
+                            RoundedRectangle(cornerSize: CGSize(width: 10, height: 10))
+                    )
             }
         }
     }
     
     var body: some View {
-        List(stories) {
-            Card(story: $0)
+        NavigationSplitView {
+            List(stories) { story in
+                NavigationLink {
+                    StoryDetails(story: story)
+                } label: {
+                    Card(story: story)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("Your Story")
+        } detail: {
+            Text("Select a Story")
         }
     }
 }

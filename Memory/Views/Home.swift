@@ -12,7 +12,6 @@ struct Home: View {
     var body: some View {
         VStack {
             StoryList(stories: stories)
-            Spacer()
         }
     }
 }
