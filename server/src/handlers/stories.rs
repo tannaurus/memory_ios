@@ -8,7 +8,13 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{access, action, api, auth::AuthState, AppError};
+use crate::{
+    access,
+    action::{self, StoryUpdate},
+    api,
+    auth::AuthState,
+    AppError,
+};
 
 use crate::model;
 
@@ -40,25 +46,6 @@ fn find_story_by_uuid(story_uuid: Uuid) -> Result<api::Story, AppError> {
 
     Ok(story)
 }
-
-// #[derive(Serialize, Deserialize)]
-// pub struct GetStoriesResponse {
-//     pub stories: Vec<api::Story>,
-// }
-
-// pub async fn handle_get_stories(
-//     Path(story_uuid): Path<Uuid>,
-// ) -> Result<Json<GetStoriesResponse>, AppError> {
-//     let response = get_stories(story_uuid)?;
-//     Ok(Json(response))
-// }
-
-// fn get_stories(_story_uuid: Uuid) -> Result<GetStoriesResponse, AppError> {
-//     let response = GetStoriesResponse {
-//         stories: Vec::new(),
-//     };
-//     Ok(response)
-// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStoryRequest {
@@ -132,8 +119,69 @@ pub async fn handle_update_story(
     story_uuid: Path<Uuid>,
     request: Json<api::UpdateStoryRequest>,
 ) -> Result<Json<api::Story>, AppError> {
-    let updated_story = action::update_story(story_uuid.0, request.0)?;
-    Ok(Json(updated_story))
+    let story: model::Story =
+        access::select_with_uuid(access::DbEntity::Stories, &story_uuid.0.to_string())?;
+
+    let story_updates = action::StoryUpdate {
+        title: request.title.clone(),
+        deleted: None,
+    };
+
+    let updated_story = action::update_story(story, story_updates)?;
+
+    let mut updated_content = Vec::new();
+    if let Some(content_updates) = request.content.clone() {
+        let content: Vec<model::Content> = access::select_all_by_id_column(
+            access::DbEntity::Content,
+            updated_story.id,
+            "story_id",
+        )?;
+        let content_map = content.into_iter().map(|c| (c.uuid, c)).collect();
+        let updates = content_updates
+            .into_iter()
+            .map(|update| action::ContentUpdate {
+                uuid: update.uuid,
+                content: update.content,
+            })
+            .collect();
+
+        updated_content = action::update_content(&updated_story, content_map, updates)?;
+    }
+
+    access::update(
+        access::DbEntity::Stories,
+        &updated_story.uuid.to_string(),
+        &updated_story,
+    )?;
+
+    for content_update in updated_content.into_iter() {
+        access::update(
+            access::DbEntity::Content,
+            &content_update.uuid.to_string(),
+            &content_update.content,
+        )?
+    }
+
+    let content: Vec<api::Content> =
+        access::select_all_by_id_column(access::DbEntity::Content, updated_story.id, "story_id")?
+            .into_iter()
+            .map(|c: model::Content| api::Content {
+                uuid: c.uuid,
+                content: c.content.into(),
+                created_at: c.created_at,
+                updated_at: c.updated_at,
+            })
+            .collect();
+
+    let story = api::Story {
+        uuid: updated_story.uuid,
+        title: updated_story.title,
+        content,
+        created_at: updated_story.created_at,
+        updated_at: updated_story.updated_at,
+    };
+
+    Ok(Json(story))
 }
 
 pub async fn handle_delete_story(story_uuid: Path<Uuid>) -> Result<Json<()>, AppError> {
@@ -143,14 +191,16 @@ pub async fn handle_delete_story(story_uuid: Path<Uuid>) -> Result<Json<()>, App
 
 fn delete_story(story_uuid: Uuid) -> Result<(), AppError> {
     let story_uuid = story_uuid.to_string();
-    let mut story: model::Story = access::select_with_uuid(access::DbEntity::Stories, &story_uuid)?;
-    if story.deleted {
-        return Err(AppError(
-            StatusCode::BAD_REQUEST,
-            "Story has already been deleted.".into(),
-        ));
-    }
-    story.deleted = true;
+    let story: model::Story = access::select_with_uuid(access::DbEntity::Stories, &story_uuid)?;
+
+    let story = action::update_story(
+        story,
+        StoryUpdate {
+            title: None,
+            deleted: Some(true),
+        },
+    )?;
+
     access::update(access::DbEntity::Stories, &story_uuid, &story)?;
 
     Ok(())
@@ -160,7 +210,7 @@ fn delete_story(story_uuid: Uuid) -> Result<(), AppError> {
 mod tests {
     use axum::http::StatusCode;
 
-    use crate::{action, api};
+    use crate::api;
 
     fn build_story_request() -> super::CreateStoryRequest {
         let content = api::ContentKind::Text(api::TextContent {
@@ -211,51 +261,5 @@ mod tests {
 
         let response = super::find_story_by_uuid(created_story.uuid).unwrap_err();
         assert_eq!(response.0, StatusCode::BAD_REQUEST);
-    }
-
-    #[test]
-    fn can_update_story_title() {
-        // Set up
-        let create_request = build_story_request();
-        let created_story = super::create_story(1, create_request).unwrap();
-
-        // Test
-        let updated_title = "Goodbye, moon!".to_string();
-        let request = api::UpdateStoryRequest {
-            title: Some(updated_title.clone()),
-            content: None,
-        };
-
-        let updated_story = action::update_story(created_story.uuid, request).unwrap();
-        assert_eq!(updated_story.title, updated_title);
-    }
-
-    #[test]
-    fn can_update_story_content() {
-        // Set up
-        let create_request = build_story_request();
-        let created_story = super::create_story(1, create_request).unwrap();
-
-        // Test
-        let title = "Goodbye, moon!".to_string();
-        let body = "It's a long way home".to_string();
-        let updated_content = api::UpdateContentRequest {
-            uuid: created_story.content[0].uuid,
-            content: api::ContentKind::Text(api::TextContent {
-                title: title.clone(),
-                body,
-            }),
-        };
-
-        let request = api::UpdateStoryRequest {
-            title: None,
-            content: Some(vec![updated_content]),
-        };
-
-        let updated_story = action::update_story(created_story.uuid, request).unwrap();
-        match updated_story.content[0].clone().content {
-            api::ContentKind::Text(story) => assert_eq!(story.title, title),
-            _ => panic!("Bad ending"),
-        }
     }
 }
