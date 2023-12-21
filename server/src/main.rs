@@ -32,6 +32,7 @@ async fn main() {
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", get(handlers::get_user))
+        .route("/stories", get(handlers::get_stories))
         .layer(TraceLayer::new_for_http());
 
     println!("Listening on {} 🚀", &args.listener);

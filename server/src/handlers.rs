@@ -15,8 +15,6 @@ pub(crate) struct GetPromptsResponse {
 }
 
 pub(crate) async fn get_prompts() -> Result<Json<GetPromptsResponse>, AppError> {
-    println!("GET /prompts");
-
     let prompt_one = Prompt {
         name: String::from("Daily"),
         description: String::from("Write about your day"),
@@ -44,8 +42,6 @@ pub(crate) struct User {
 }
 
 pub(crate) async fn get_user() -> Result<Json<User>, AppError> {
-    println!("GET /user");
-
     let user = User {
         name: String::from("Tanner"),
         picture: String::from("profile"),
@@ -55,4 +51,55 @@ pub(crate) async fn get_user() -> Result<Json<User>, AppError> {
     };
 
     Ok(Json(user))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct Story {
+    title: String,
+    preview: Content,
+    content: Vec<Content>,
+    created_at: String,
+    updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) enum Content {
+    Image(ImageContent),
+    Text(TextContent),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct ImageContent {
+    src: String,
+    description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct TextContent {
+    title: String,
+    description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct GetStoriesResponse {
+    stories: Vec<Story>,
+}
+
+pub(crate) async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
+    let mexico_city = Story {
+        title: String::from("Mexico City"),
+        preview: Content::Image(ImageContent {
+            src: String::from("mexico_city"),
+            description: String::new(),
+        }),
+        content: Vec::new(),
+        created_at: String::from(""),
+        updated_at: String::from(""),
+    };
+
+    let response = GetStoriesResponse {
+        stories: vec![mexico_city],
+    };
+
+    Ok(Json(response))
 }
