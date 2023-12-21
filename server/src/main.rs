@@ -1,15 +1,18 @@
 use axum::{
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Router,
 };
 use clap::Parser;
+use serde_json::json;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
 mod access;
+mod action;
 mod api;
+mod auth;
 mod handlers;
 mod model;
 
@@ -44,6 +47,16 @@ async fn main() {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
+    let mocked_user: model::User = {
+        let user_json = json!({
+            "id": 1,
+            "uuid": "6c81e345-1ab3-463b-8aa2-916da81c1d0c",
+            "name": "Tanner Gill"
+        });
+        serde_json::from_value(user_json).unwrap()
+    };
+    let auth_state = auth::AuthState { user: mocked_user };
+
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", get(handlers::get_user))
@@ -53,10 +66,15 @@ async fn main() {
         )
         .route("/story", post(handlers::stories::handle_create_story))
         .route(
-            "/story:/story_uuid",
+            "/story/:story_uuid",
+            delete(handlers::stories::handle_delete_story),
+        )
+        .route(
+            "/story/:story_uuid",
             put(handlers::stories::handle_update_story),
         )
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .with_state(auth_state);
 
     println!("Listening on {} 🚀", &args.listener);
 

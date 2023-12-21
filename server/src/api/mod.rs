@@ -54,3 +54,15 @@ pub struct TextContent {
     pub title: String,
     pub body: String,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateStoryRequest {
+    pub title: Option<String>,
+    pub content: Option<Vec<UpdateContentRequest>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateContentRequest {
+    pub uuid: Uuid,
+    pub content: ContentKind,
+}
