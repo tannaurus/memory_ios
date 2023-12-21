@@ -1,4 +1,8 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -83,9 +87,23 @@ pub async fn create_user(
     }))
 }
 
-pub async fn get_user() -> Result<Json<api::User>, AppError> {
-    let mocked_data =
-        access::select_with_uuid(DbEntity::Users, "6c81e345-1ab3-463b-8aa2-916da81c1d0c")?;
+pub async fn get_user(
+    ctx: State<AppContext>,
+    uuid: Path<Uuid>,
+) -> Result<Json<api::User>, AppError> {
+    let user = sqlx::query_as!(
+        model::User,
+        "SELECT * FROM users WHERE uuid = ?",
+        uuid.to_string()
+    )
+    .fetch_one(&ctx.db)
+    .await
+    .map_err(|_| AppError(StatusCode::BAD_REQUEST, "Failed to find user".into()))?;
 
-    Ok(Json(mocked_data))
+    Ok(Json(api::User {
+        name: user.name,
+        uuid: user.uuid,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+    }))
 }

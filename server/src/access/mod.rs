@@ -14,7 +14,6 @@ pub enum DbEntity {
     Prompts,
     Stories,
     Content,
-    Users,
 }
 
 impl Display for DbEntity {

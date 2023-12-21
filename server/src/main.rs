@@ -98,7 +98,7 @@ async fn main() {
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", post(handlers::create_user))
-        .route("/user", get(handlers::get_user))
+        .route("/user/:user_uuid", get(handlers::get_user))
         .route(
             "/stories/:story_uuid",
             get(handlers::stories::handle_get_story),
