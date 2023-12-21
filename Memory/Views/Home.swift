@@ -8,14 +8,15 @@
 import SwiftUI
 
 struct Home: View {
+    var stories: [Story]
     var body: some View {
         VStack {
-            StoryList(stories: [Story(title: "Spring", preview: "user_1")])
+            StoryList(stories: stories)
             Spacer()
         }
     }
 }
 
 #Preview {
-    Home()
+    Home(stories: mock_stories)
 }

@@ -6,23 +6,27 @@
 //
 
 import SwiftUI
-
+import Foundation
 
 struct Story: Codable, Identifiable {
     let id = UUID()
     
     var title: String;
     var preview: String;
+    var created_at: String;
+    var updated_at: String;
     
     private enum CodingKeys: String, CodingKey {
         case title
         case preview
+        case created_at
+        case updated_at
     }
 }
 
 
 struct StoryList: View {
-    let stories: [Story]
+    var stories: [Story]
     
     struct Card: View {
         let story: Story
@@ -30,18 +34,25 @@ struct StoryList: View {
         func viewStory() {
             print("Viewing", story.title)
         }
+    
         
         var body: some View {
             VStack {
+                HStack {
+                    Text("11/23").font(.system(size: 10))
+                    Spacer()
+                    Text(story.title)
+                    Spacer()
+                }
                 Button(action: viewStory) {
                     Image(story.preview)
-                            .resizable()
-                            .clipShape(
-                                    RoundedRectangle(cornerSize: CGSize(width: 10, height: 10))
-                            )
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(
+                                RoundedRectangle(cornerSize: CGSize(width: 10, height: 10))
+                        )
 
                 }
-                Text(story.title).font(.system(size: 10))
             }
         }
     }
@@ -54,5 +65,5 @@ struct StoryList: View {
 }
 
 #Preview {
-    StoryList(stories: [Story(title: "Spring", preview: "user_1")])
+    StoryList(stories: mock_stories)
 }

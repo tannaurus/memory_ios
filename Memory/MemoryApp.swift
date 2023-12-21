@@ -11,7 +11,7 @@ import SwiftUI
 struct MemoryApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(stories: mock_stories)
         }
     }
 }
