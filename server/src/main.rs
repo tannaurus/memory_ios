@@ -6,6 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use serde_json::json;
+use sqlx::mysql::MySqlPoolOptions;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
@@ -22,6 +23,17 @@ struct Args {
     /// Address to accept requests from
     #[arg(short, long, env = "LISTENER", default_value = "127.0.0.1:3000")]
     listener: SocketAddr,
+
+    #[arg(env = "MYSQL_DATABASE", default_value = "memory")]
+    mysql_database: String,
+    #[arg(env = "MYSQL_USER", default_value = "user")]
+    mysql_user: String,
+    #[arg(env = "MYSQL_PASSWORD", default_value = "root")]
+    mysql_password: String,
+    #[arg(env = "MYSQL_PORT", default_value = "3306")]
+    mysql_port: String,
+    #[arg(env = "MYSQL_HOST", default_value = "localhost:3306")]
+    mysql_host: String,
 }
 
 #[derive(Debug)]
@@ -46,6 +58,17 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
+
+    let mysql_url = format!(
+        "mysql://{}:{}@{}/{}",
+        args.mysql_user, args.mysql_password, args.mysql_host, args.mysql_database
+    );
+
+    let pool = MySqlPoolOptions::new()
+        .max_connections(5)
+        .connect(&mysql_url)
+        .await
+        .unwrap();
 
     let mocked_user: model::User = {
         let user_json = json!({
