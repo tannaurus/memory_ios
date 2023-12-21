@@ -10,7 +10,7 @@ import SwiftUI
 struct Home: View {
     var body: some View {
         VStack {
-            StoryList()
+            StoryList(stories: [Story(title: "Spring", preview: "user_1")])
             Spacer()
         }
     }
