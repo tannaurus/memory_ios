@@ -6,7 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use serde_json::json;
-use sqlx::{mysql::MySqlPoolOptions, MySql, MySqlPool, Pool};
+use sqlx::{mysql::MySqlPoolOptions, MySqlPool};
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
@@ -82,7 +82,9 @@ async fn main() {
         let user_json = json!({
             "id": 1,
             "uuid": "6c81e345-1ab3-463b-8aa2-916da81c1d0c",
-            "name": "Tanner Gill"
+            "name": "Tanner Gill",
+            "created_at": "2023-12-19T21:04:45.976885+00:00",
+            "updated_at": "2023-12-19T21:04:45.976885+00:00"
         });
         serde_json::from_value(user_json).unwrap()
     };
@@ -95,6 +97,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
+        .route("/user", post(handlers::create_user))
         .route("/user", get(handlers::get_user))
         .route(
             "/stories/:story_uuid",

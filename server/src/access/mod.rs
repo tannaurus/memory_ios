@@ -40,7 +40,7 @@ where
 /// If "id_column" is not within T, this will return an empty vec.
 pub fn select_all_by_id_column<T>(
     kind: DbEntity,
-    id: usize,
+    id: u32,
     id_column: &str,
 ) -> Result<Vec<T>, AppError>
 where
@@ -130,7 +130,7 @@ where
 }
 
 /// Counts the length of items in the given [DbEntity] directory.
-pub fn generate_entity_id(kind: DbEntity) -> Result<usize, AppError> {
+pub fn generate_entity_id(kind: DbEntity) -> Result<u32, AppError> {
     let path = format!("db/{}", kind);
     let dir = fs::read_dir(path).map_err(|_| {
         AppError(

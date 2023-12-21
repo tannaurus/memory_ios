@@ -38,8 +38,8 @@ fn find_story_by_uuid(story_uuid: Uuid) -> Result<api::Story, AppError> {
         uuid: story.uuid,
         title: story.title,
         content,
-        created_at: story.created_at,
-        updated_at: story.updated_at,
+        created_at: story.created_at.to_rfc3339(),
+        updated_at: story.updated_at.to_rfc3339(),
     };
 
     Ok(story)
@@ -57,17 +57,10 @@ pub async fn handle_create_story(
 ) -> Result<Json<api::Story>, AppError> {
     let story = create_story(ctx.auth.user.id, request.0)?;
 
-    // let tx = ctx.db.begin().await.map_err(|_| {
-    //     AppError(
-    //         StatusCode::INTERNAL_SERVER_ERROR,
-    //         "Failed to acquire lock".into(),
-    //     )
-    // })?;
-
-    let result = sqlx::query!(
+    sqlx::query!(
         r#"INSERT INTO stories (uuid, user_id, title) VALUES (?, ?, ?)"#,
         story.uuid.to_string(),
-        ctx.auth.user.id as i32,
+        ctx.auth.user.id,
         story.title
     )
     .execute(&ctx.db)
@@ -79,13 +72,11 @@ pub async fn handle_create_story(
         )
     })?;
 
-    println!("{:?}", result);
-
     Ok(Json(story))
 }
 
-fn create_story(user_id: usize, request: CreateStoryRequest) -> Result<api::Story, AppError> {
-    let now = Utc::now().to_rfc3339();
+fn create_story(user_id: u32, request: CreateStoryRequest) -> Result<api::Story, AppError> {
+    let now = Utc::now();
 
     let uuid = Uuid::new_v4();
     let story_id = access::generate_entity_id(access::DbEntity::Stories)?;
@@ -123,8 +114,8 @@ fn create_story(user_id: usize, request: CreateStoryRequest) -> Result<api::Stor
             api::Content {
                 uuid: model_content.uuid,
                 content: c,
-                created_at: model_content.created_at,
-                updated_at: model_content.updated_at,
+                created_at: model_content.created_at.to_rfc3339(),
+                updated_at: model_content.updated_at.to_rfc3339(),
             }
         })
         .collect();
@@ -133,8 +124,8 @@ fn create_story(user_id: usize, request: CreateStoryRequest) -> Result<api::Stor
         uuid: story.uuid,
         title: story.title,
         content,
-        created_at: story.created_at,
-        updated_at: story.updated_at,
+        created_at: story.created_at.to_rfc3339(),
+        updated_at: story.updated_at.to_rfc3339(),
     })
 }
 
@@ -191,8 +182,8 @@ pub async fn handle_update_story(
             .map(|c: model::Content| api::Content {
                 uuid: c.uuid,
                 content: c.content.into(),
-                created_at: c.created_at,
-                updated_at: c.updated_at,
+                created_at: c.created_at.to_rfc3339(),
+                updated_at: c.updated_at.to_rfc3339(),
             })
             .collect();
 
@@ -200,8 +191,8 @@ pub async fn handle_update_story(
         uuid: updated_story.uuid,
         title: updated_story.title,
         content,
-        created_at: updated_story.created_at,
-        updated_at: updated_story.updated_at,
+        created_at: updated_story.created_at.to_rfc3339(),
+        updated_at: updated_story.updated_at.to_rfc3339(),
     };
 
     Ok(Json(story))

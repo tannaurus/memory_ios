@@ -1,10 +1,10 @@
-use axum::Json;
+use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     access::{self, DbEntity},
-    AppError,
+    api, model, AppContext, AppError,
 };
 
 pub mod stories;
@@ -37,16 +37,53 @@ pub async fn get_prompts() -> Result<Json<GetPromptsResponse>, AppError> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
-    uuid: Uuid,
-    name: String,
-    picture: String,
-    followers: u32,
-    following: u32,
-    bio: String,
+pub struct CreateUserRequest {
+    pub name: String,
 }
 
-pub async fn get_user() -> Result<Json<User>, AppError> {
+pub async fn create_user(
+    ctx: State<AppContext>,
+    request: Json<CreateUserRequest>,
+) -> Result<Json<api::User>, AppError> {
+    let uuid = Uuid::new_v4();
+    let result = sqlx::query!(
+        "INSERT INTO users (name, uuid) VALUES (?, ?)",
+        request.name,
+        uuid.to_string()
+    )
+    .execute(&ctx.db)
+    .await
+    .map_err(|e| {
+        println!("{}", e);
+        AppError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to write user to database.".into(),
+        )
+    })?;
+
+    let user = sqlx::query_as!(
+        model::User,
+        "SELECT * FROM users WHERE id = ?",
+        result.last_insert_id()
+    )
+    .fetch_one(&ctx.db)
+    .await
+    .map_err(|_| {
+        AppError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to write user to database.".into(),
+        )
+    })?;
+
+    Ok(Json(api::User {
+        name: user.name,
+        uuid: user.uuid,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+    }))
+}
+
+pub async fn get_user() -> Result<Json<api::User>, AppError> {
     let mocked_data =
         access::select_with_uuid(DbEntity::Users, "6c81e345-1ab3-463b-8aa2-916da81c1d0c")?;
 

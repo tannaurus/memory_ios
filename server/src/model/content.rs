@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -5,12 +6,12 @@ use crate::api;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Content {
-    pub id: usize,
-    pub story_id: usize,
+    pub id: u32,
+    pub story_id: u32,
     pub uuid: Uuid,
     pub content: ContentKind,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -22,7 +22,7 @@ pub fn update_story(
         ));
     }
 
-    let now = Utc::now().to_rfc3339();
+    let now = Utc::now();
 
     if let Some(title) = updates.title.clone() {
         story.title = title;
@@ -54,7 +54,7 @@ pub fn update_content(
         ));
     }
 
-    let now = Utc::now().to_rfc3339();
+    let now = Utc::now();
 
     for content_update in updates.into_iter() {
         let existing_content = content
@@ -78,6 +78,7 @@ pub fn update_content(
 
 #[cfg(test)]
 mod tests {
+    use chrono::DateTime;
     use std::{collections::HashMap, str::FromStr};
     use uuid::Uuid;
 
@@ -91,8 +92,8 @@ mod tests {
             user_id: 1,
             uuid: Uuid::from_str("7d18fe04-cc45-41ec-b899-1dd54bcfcf0b").unwrap(),
             title: "Hello, world!".into(),
-            created_at: "2023-12-19T21:04:45.976885+00:00".into(),
-            updated_at: "2023-12-19T21:04:45.976885+00:00".into(),
+            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
+            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
             deleted: false,
         };
 
@@ -117,8 +118,8 @@ mod tests {
             user_id: 1,
             uuid: Uuid::from_str("7d18fe04-cc45-41ec-b899-1dd54bcfcf0b").unwrap(),
             title: "Hello, world!".into(),
-            created_at: "2023-12-19T21:04:45.976885+00:00".into(),
-            updated_at: "2023-12-19T21:04:45.976885+00:00".into(),
+            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
+            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
             deleted: false,
         };
 
@@ -142,8 +143,8 @@ mod tests {
             user_id: 1,
             uuid: Uuid::from_str("7d18fe04-cc45-41ec-b899-1dd54bcfcf0b").unwrap(),
             title: "Hello, world!".into(),
-            created_at: "2023-12-19T21:04:45.976885+00:00".into(),
-            updated_at: "2023-12-19T21:04:45.976885+00:00".into(),
+            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
+            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
             deleted: false,
         };
 
@@ -155,8 +156,8 @@ mod tests {
                 title: "Hello, world!".into(),
                 body: "Something note worthy".into(),
             }),
-            created_at: "2023-12-19T21:04:45.976885+00:00".into(),
-            updated_at: "2023-12-19T21:04:45.976885+00:00".into(),
+            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
+            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
         };
 
         // Test
