@@ -2,45 +2,9 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    utils::{self, DbEntity},
+    utils::{read_db, DbEntity},
     AppError,
 };
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct Prompt {
-    name: String,
-    description: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct GetPromptsResponse {
-    prompts: Vec<Prompt>,
-}
-
-pub(crate) async fn get_prompts() -> Result<Json<GetPromptsResponse>, AppError> {
-    let mocked_data = utils::read_db(DbEntity::Prompts, "mock.json")?;
-
-    let response = GetPromptsResponse {
-        prompts: mocked_data,
-    };
-
-    Ok(Json(response))
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct User {
-    name: String,
-    picture: String,
-    followers: u32,
-    following: u32,
-    bio: String,
-}
-
-pub(crate) async fn get_user() -> Result<Json<User>, AppError> {
-    let mocked_data = utils::read_db(DbEntity::Users, "mock.json")?;
-
-    Ok(Json(mocked_data))
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Story {
@@ -77,10 +41,11 @@ pub(crate) struct GetStoriesResponse {
 }
 
 pub(crate) async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
-    let mocked_data = utils::read_db(DbEntity::Stories, "mock.json")?;
+    let story_one = read_db(DbEntity::Stories, "1")?;
+    let story_two = read_db(DbEntity::Stories, "2")?;
 
     let response = GetStoriesResponse {
-        stories: mocked_data,
+        stories: vec![story_one, story_two],
     };
 
     Ok(Json(response))

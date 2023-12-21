@@ -1,0 +1,32 @@
+{
+  "title": "Anniversary",
+  "preview": {
+    "kind": "image",
+    "src": "october_julian",
+    "description": "Ellie and I in the orchard"
+  },
+  "content": [
+    {
+      "kind": "image",
+      "src": "anniversary_1",
+      "description": "A stop by Coffee & Tea Collective on the way"
+    },
+    {
+      "kind": "image",
+      "src": "october_julian",
+      "description": "Ellie and I in the orchard"
+    },
+    {
+      "kind": "image",
+      "src": "anniversary_2",
+      "description": "Desiree found an apple"
+    },
+    {
+      "kind": "image",
+      "src": "anniversary_3",
+      "description": "Our collection"
+    }
+  ],
+  "created_at": "2023-11-05T20:31:28+0000",
+  "updated_at": "2023-11-05T20:31:28+0000"
+}
