@@ -9,6 +9,9 @@ import SwiftUI
 
 struct ContentView: View {
     var stories: [Story]
+    var prompts: [Prompt]
+    var user: User
+    
     var body: some View {
         TabView {
             Home(stories: stories)
@@ -16,15 +19,20 @@ struct ContentView: View {
                     Image(systemName: "house.fill")
                     Text("Home")
                 }
-            Profile(profile_picture: Image("profile"), follower_count: 432, following_count: 341, user_name: "Tanner Gill", user_bio: "Developer @ 1Password")
-                .tabItem() {
-                Image(systemName: "person.fill")
-                Text("Profile")
-            }
+            CreateStory(prompts: prompts)
+                .tabItem {
+                    Image(systemName: "plus")
+                    Text("Create")
+                }
+            Profile(user: user)
+                .tabItem {
+                    Image(systemName: "person.fill")
+                    Text("Profile")
+                }
         }.buttonBorderShape(.roundedRectangle)
     }
 }
 
 #Preview {
-    ContentView(stories: mock_stories)
+    ContentView(stories: mock_stories, prompts: mock_prompts, user: mock_user)
 }

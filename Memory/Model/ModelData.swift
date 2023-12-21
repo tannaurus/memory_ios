@@ -8,6 +8,8 @@
 import Foundation
 
 var mock_stories: [Story] = load("stories.json")
+var mock_user: User = load("user.json")
+var mock_prompts: [Prompt] = load("prompts.json")
 
 func load<T: Decodable>(_ filename: String) -> T {
     let data: Data

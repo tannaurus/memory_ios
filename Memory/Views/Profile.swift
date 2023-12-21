@@ -8,11 +8,7 @@
 import SwiftUI
 
 struct Profile: View {
-    var profile_picture: Image
-    var follower_count: Int64
-    var following_count: Int64
-    var user_name: String
-    var user_bio: String
+    var user: User
     
     struct Header: View {
         var body: some View {
@@ -66,20 +62,20 @@ struct Profile: View {
             VStack {
                 HStack {
                     Spacer()
-                    ProfileStackedText(label: "Followers", value: String(follower_count))
+                    ProfileStackedText(label: "Followers", value: String(user.followers))
                     Spacer()
-                    profile_picture
+                    Image(user.picture)
                         .resizable()
                         .frame(width: 100, height: 100)
                         .clipShape(
                             RoundedRectangle(cornerSize: CGSize(width: 20, height: 20)))
                     Spacer()
-                    ProfileStackedText(label: "Following", value: String(following_count))
+                    ProfileStackedText(label: "Following", value: String(user.following))
                     Spacer()
                 }.padding(10)
                 VStack {
-                    Text(user_name).foregroundStyle(.white).fontWeight(/*@START_MENU_TOKEN@*/.bold/*@END_MENU_TOKEN@*/).font(.system(size:26))
-                    Text(user_bio).foregroundStyle(.gray).font(.system(size:15))
+                    Text(user.name).foregroundStyle(.white).fontWeight(/*@START_MENU_TOKEN@*/.bold/*@END_MENU_TOKEN@*/).font(.system(size:26))
+                    Text(user.bio).foregroundStyle(.gray).font(.system(size:15))
                     HStack {
                         FollowButton()
                         MessageButton()
@@ -95,5 +91,5 @@ struct Profile: View {
 }
 
 #Preview {
-    Profile(profile_picture: Image("profile"), follower_count: 432, following_count: 341, user_name: "Tanner Gill", user_bio: "Developer @ 1Password")
+    Profile(user: mock_user)
 }

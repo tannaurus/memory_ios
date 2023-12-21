@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Daily",
+        "description": "Write about your day today",
+    },
+    {
+        "name": "New begining",
+        "description": "Document the start of something new",
+    },
+    {
+        "name": "Reflect",
+        "description": "Take a step back",
+    }
+]
