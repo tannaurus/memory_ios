@@ -6,7 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use serde_json::json;
-use sqlx::mysql::MySqlPoolOptions;
+use sqlx::{mysql::MySqlPoolOptions, MySql, MySqlPool, Pool};
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
@@ -51,6 +51,12 @@ impl IntoResponse for AppError {
     }
 }
 
+#[derive(Clone)]
+pub struct AppContext {
+    pub db: MySqlPool,
+    pub auth: auth::AuthState,
+}
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
@@ -82,6 +88,11 @@ async fn main() {
     };
     let auth_state = auth::AuthState { user: mocked_user };
 
+    let context = AppContext {
+        db: pool,
+        auth: auth_state,
+    };
+
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", get(handlers::get_user))
@@ -99,7 +110,7 @@ async fn main() {
             put(handlers::stories::handle_update_story),
         )
         .layer(TraceLayer::new_for_http())
-        .with_state(auth_state);
+        .with_state(context);
 
     println!("Listening on {} 🚀", &args.listener);
 

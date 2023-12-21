@@ -110,7 +110,7 @@ where
 
 /// Writes T into a new json file.
 /// Returns [AppError] if something goes wrong.
-pub fn write_db<T>(kind: DbEntity, uuid: &str, data: &T) -> Result<(), AppError>
+fn legacy_write_db<T>(kind: DbEntity, uuid: &str, data: &T) -> Result<(), AppError>
 where
     T: ?Sized + Serialize,
 {
@@ -118,6 +118,15 @@ where
     let file = File::create(&path).context(format!("Failed to create file {}", path))?;
     let writer = BufWriter::new(file);
     Ok(serde_json::to_writer(writer, data).context(format!("Failed to write {}", path))?)
+}
+
+pub fn write_db<T>(kind: DbEntity, uuid: &str, data: &T) -> Result<(), AppError>
+where
+    T: ?Sized + Serialize,
+{
+    legacy_write_db(kind, uuid, data)?;
+
+    Ok(())
 }
 
 /// Counts the length of items in the given [DbEntity] directory.

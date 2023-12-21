@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use axum_macros::debug_handler;
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -11,9 +11,7 @@ use uuid::Uuid;
 use crate::{
     access,
     action::{self, StoryUpdate},
-    api,
-    auth::AuthState,
-    AppError,
+    api, AppContext, AppError,
 };
 
 use crate::model;
@@ -53,12 +51,36 @@ pub struct CreateStoryRequest {
     content: Vec<api::ContentKind>,
 }
 
-#[debug_handler]
 pub async fn handle_create_story(
-    auth_state: State<AuthState>,
+    ctx: State<AppContext>,
     request: Json<CreateStoryRequest>,
 ) -> Result<Json<api::Story>, AppError> {
-    let story = create_story(auth_state.0.user.id, request.0)?;
+    let story = create_story(ctx.auth.user.id, request.0)?;
+
+    // let tx = ctx.db.begin().await.map_err(|_| {
+    //     AppError(
+    //         StatusCode::INTERNAL_SERVER_ERROR,
+    //         "Failed to acquire lock".into(),
+    //     )
+    // })?;
+
+    let result = sqlx::query!(
+        r#"INSERT INTO stories (uuid, user_id, title) VALUES (?, ?, ?)"#,
+        story.uuid.to_string(),
+        ctx.auth.user.id as i32,
+        story.title
+    )
+    .execute(&ctx.db)
+    .await
+    .map_err(|_| {
+        AppError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to insert story".into(),
+        )
+    })?;
+
+    println!("{:?}", result);
+
     Ok(Json(story))
 }
 
@@ -95,6 +117,7 @@ fn create_story(user_id: usize, request: CreateStoryRequest) -> Result<api::Stor
                 updated_at: now.clone(),
                 content: c.clone().into(),
             };
+
             access::write_db(access::DbEntity::Content, &uuid.to_string(), &model_content).unwrap();
 
             api::Content {
