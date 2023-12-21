@@ -1,4 +1,9 @@
-use axum::{http::StatusCode, response::IntoResponse, routing::get, Router};
+use axum::{
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
 use clap::Parser;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
@@ -40,6 +45,7 @@ async fn main() {
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", get(handlers::get_user))
         .route("/stories", get(handlers::stories::get_stories))
+        .route("/story", post(handlers::stories::create_story))
         .layer(TraceLayer::new_for_http());
 
     println!("Listening on {} 🚀", &args.listener);

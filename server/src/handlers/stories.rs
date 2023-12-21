@@ -2,7 +2,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    utils::{read_db, DbEntity},
+    utils::{read_db, write_db, DbEntity},
     AppError,
 };
 
@@ -49,4 +49,16 @@ pub async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
     };
 
     Ok(Json(response))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateStoryRequest {
+    user_uuid: String,
+    story: Story,
+}
+
+pub async fn create_story(request: Json<CreateStoryRequest>) -> Result<Json<Story>, AppError> {
+    write_db(DbEntity::Stories, "3", &request.story)?;
+
+    Ok(Json(request.story.clone()))
 }

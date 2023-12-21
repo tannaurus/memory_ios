@@ -32,3 +32,15 @@ where
     let reader = BufReader::new(file);
     Ok(serde_json::from_reader(reader).context(format!("Failed to deserialize {}", path))?)
 }
+
+/// Writes T into a new json file.
+/// Returns [AppError] if something goes wrong.
+pub fn write_db<T>(kind: DbEntity, uuid: &str, data: &T) -> Result<(), AppError>
+where
+    T: ?Sized + Serialize,
+{
+    let path = format!("db/{}/{}.json", kind, uuid);
+    let file = File::create(&path).context(format!("Failed to create file {}", path))?;
+    let writer = BufWriter::new(file);
+    Ok(serde_json::to_writer(writer, data).context(format!("Failed to write {}", path))?)
+}
