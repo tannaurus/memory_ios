@@ -70,6 +70,8 @@ async fn main() {
         .await
         .unwrap();
 
+    sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+
     let mocked_user: model::User = {
         let user_json = json!({
             "id": 1,
