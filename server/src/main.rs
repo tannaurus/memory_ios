@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
 mod handlers;
+mod utils;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -14,6 +15,12 @@ struct Args {
 }
 
 struct AppError(StatusCode, anyhow::Error);
+
+impl From<anyhow::Error> for AppError {
+    fn from(error: anyhow::Error) -> Self {
+        Self(StatusCode::INTERNAL_SERVER_ERROR, error)
+    }
+}
 
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {

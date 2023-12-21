@@ -1,7 +1,7 @@
 use axum::Json;
 use serde::{Deserialize, Serialize};
 
-use crate::AppError;
+use crate::{utils, AppError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Prompt {
@@ -9,24 +9,16 @@ pub(crate) struct Prompt {
     description: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct GetPromptsResponse {
     prompts: Vec<Prompt>,
 }
 
 pub(crate) async fn get_prompts() -> Result<Json<GetPromptsResponse>, AppError> {
-    let prompt_one = Prompt {
-        name: String::from("Daily"),
-        description: String::from("Write about your day"),
-    };
-
-    let prompt_two = Prompt {
-        name: String::from("Reflect"),
-        description: String::from("Take a step back"),
-    };
+    let mocked_data = utils::read_mocked_data("prompts.json")?;
 
     let response = GetPromptsResponse {
-        prompts: vec![prompt_one, prompt_two],
+        prompts: mocked_data,
     };
 
     Ok(Json(response))
@@ -42,15 +34,9 @@ pub(crate) struct User {
 }
 
 pub(crate) async fn get_user() -> Result<Json<User>, AppError> {
-    let user = User {
-        name: String::from("Tanner"),
-        picture: String::from("profile"),
-        followers: 434,
-        following: 64,
-        bio: String::from("Developer @ 1Password"),
-    };
+    let mocked_data = utils::read_mocked_data("user.json")?;
 
-    Ok(Json(user))
+    Ok(Json(mocked_data))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +49,8 @@ pub(crate) struct Story {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum Content {
     Image(ImageContent),
     Text(TextContent),
@@ -86,19 +74,10 @@ pub(crate) struct GetStoriesResponse {
 }
 
 pub(crate) async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
-    let mexico_city = Story {
-        title: String::from("Mexico City"),
-        preview: Content::Image(ImageContent {
-            src: String::from("mexico_city"),
-            description: String::new(),
-        }),
-        content: Vec::new(),
-        created_at: String::from(""),
-        updated_at: String::from(""),
-    };
+    let mocked_data = utils::read_mocked_data("stories.json")?;
 
     let response = GetStoriesResponse {
-        stories: vec![mexico_city],
+        stories: mocked_data,
     };
 
     Ok(Json(response))
