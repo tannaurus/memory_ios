@@ -14,6 +14,17 @@ pub struct Content {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Into<api::Content> for Content {
+    fn into(self) -> api::Content {
+        api::Content {
+            uuid: self.uuid,
+            content: self.content.into(),
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]

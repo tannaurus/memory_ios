@@ -34,15 +34,7 @@ fn find_story_by_uuid(story_uuid: Uuid) -> Result<api::Story, AppError> {
 
     let content = access::select_all_by_id_column(access::DbEntity::Content, story.id, "story_id")?;
 
-    let story = api::Story {
-        uuid: story.uuid,
-        title: story.title,
-        content,
-        created_at: story.created_at.to_rfc3339(),
-        updated_at: story.updated_at.to_rfc3339(),
-    };
-
-    Ok(story)
+    Ok(story.into_api_story(content))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,22 +103,11 @@ fn create_story(user_id: u32, request: CreateStoryRequest) -> Result<api::Story,
 
             access::write_db(access::DbEntity::Content, &uuid.to_string(), &model_content).unwrap();
 
-            api::Content {
-                uuid: model_content.uuid,
-                content: c,
-                created_at: model_content.created_at.to_rfc3339(),
-                updated_at: model_content.updated_at.to_rfc3339(),
-            }
+            model_content
         })
         .collect();
 
-    Ok(api::Story {
-        uuid: story.uuid,
-        title: story.title,
-        content,
-        created_at: story.created_at.to_rfc3339(),
-        updated_at: story.updated_at.to_rfc3339(),
-    })
+    Ok(story.into_api_story(content))
 }
 
 pub async fn handle_update_story(
@@ -176,24 +157,10 @@ pub async fn handle_update_story(
         )?
     }
 
-    let content: Vec<api::Content> =
-        access::select_all_by_id_column(access::DbEntity::Content, updated_story.id, "story_id")?
-            .into_iter()
-            .map(|c: model::Content| api::Content {
-                uuid: c.uuid,
-                content: c.content.into(),
-                created_at: c.created_at.to_rfc3339(),
-                updated_at: c.updated_at.to_rfc3339(),
-            })
-            .collect();
+    let content: Vec<model::Content> =
+        access::select_all_by_id_column(access::DbEntity::Content, updated_story.id, "story_id")?;
 
-    let story = api::Story {
-        uuid: updated_story.uuid,
-        title: updated_story.title,
-        content,
-        created_at: updated_story.created_at.to_rfc3339(),
-        updated_at: updated_story.updated_at.to_rfc3339(),
-    };
+    let story = updated_story.into_api_story(content);
 
     Ok(Json(story))
 }
