@@ -1,5 +1,5 @@
 use axum::{extract::Path, Json};
-use axum_macros::debug_handler;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -10,11 +10,21 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Story {
+    uuid: Uuid,
     title: String,
     preview: Content,
     content: Vec<Content>,
     created_at: String,
     updated_at: String,
+}
+
+impl Into<StoryPreview> for Story {
+    fn into(self) -> StoryPreview {
+        StoryPreview {
+            uuid: self.uuid,
+            preview: self.preview,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,13 +48,19 @@ pub struct TextContent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetStoriesResponse {
-    stories: Vec<Story>,
+pub struct StoryPreview {
+    uuid: Uuid,
+    preview: Content,
 }
 
-pub async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
-    let story_one = read_db(DbEntity::Stories, "1")?;
-    let story_two = read_db(DbEntity::Stories, "2")?;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetStoriesResponse {
+    stories: Vec<StoryPreview>,
+}
+
+pub async fn get_stories_previews() -> Result<Json<GetStoriesResponse>, AppError> {
+    let story_one = read_db(DbEntity::Stories, "e76ba6b7-2eda-4edc-b913-fb8736e62a28")?;
+    let story_two = read_db(DbEntity::Stories, "ff9a0564-8a50-4b37-a5de-cc1f41bf178d")?;
 
     let response = GetStoriesResponse {
         stories: vec![story_one, story_two],
@@ -61,13 +77,24 @@ pub async fn get_story(Path(story_uuid): Path<Uuid>) -> Result<Json<Story>, AppE
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStoryRequest {
-    user_uuid: String,
-    story: Story,
+    title: String,
+    preview: Content,
+    content: Vec<Content>,
 }
 
 pub async fn create_story(request: Json<CreateStoryRequest>) -> Result<Json<Story>, AppError> {
     let uuid = Uuid::new_v4();
-    write_db(DbEntity::Stories, &uuid.to_string(), &request.story)?;
+    let created_at = Utc::now().to_rfc3339();
+    let updated_at = created_at.clone();
+    let story = Story {
+        uuid,
+        title: request.title.clone(),
+        preview: request.preview.clone(),
+        content: request.content.clone(),
+        created_at,
+        updated_at,
+    };
+    write_db(DbEntity::Stories, &uuid.to_string(), &story)?;
 
-    Ok(Json(request.story.clone()))
+    Ok(Json(story))
 }
