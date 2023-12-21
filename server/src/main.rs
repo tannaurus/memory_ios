@@ -45,6 +45,7 @@ async fn main() {
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", get(handlers::get_user))
         .route("/stories", get(handlers::stories::get_stories))
+        .route("/story/:story_uuid", get(handlers::stories::get_story))
         .route("/story", post(handlers::stories::create_story))
         .layer(TraceLayer::new_for_http());
 

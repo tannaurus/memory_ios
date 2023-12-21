@@ -1,4 +1,5 @@
-use axum::Json;
+use axum::{extract::Path, Json};
+use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -52,6 +53,12 @@ pub async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
     Ok(Json(response))
 }
 
+pub async fn get_story(Path(story_uuid): Path<Uuid>) -> Result<Json<Story>, AppError> {
+    let story = read_db(DbEntity::Stories, &story_uuid.to_string())?;
+
+    Ok(Json(story))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStoryRequest {
     user_uuid: String,
@@ -60,7 +67,6 @@ pub struct CreateStoryRequest {
 
 pub async fn create_story(request: Json<CreateStoryRequest>) -> Result<Json<Story>, AppError> {
     let uuid = Uuid::new_v4();
-
     write_db(DbEntity::Stories, &uuid.to_string(), &request.story)?;
 
     Ok(Json(request.story.clone()))
