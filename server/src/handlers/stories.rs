@@ -1,5 +1,6 @@
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     utils::{read_db, write_db, DbEntity},
@@ -58,7 +59,9 @@ pub struct CreateStoryRequest {
 }
 
 pub async fn create_story(request: Json<CreateStoryRequest>) -> Result<Json<Story>, AppError> {
-    write_db(DbEntity::Stories, "3", &request.story)?;
+    let uuid = Uuid::new_v4();
+
+    write_db(DbEntity::Stories, &uuid.to_string(), &request.story)?;
 
     Ok(Json(request.story.clone()))
 }
