@@ -1,7 +1,10 @@
 use axum::Json;
 use serde::{Deserialize, Serialize};
 
-use crate::{utils, AppError};
+use crate::{
+    utils::{self, DbEntity},
+    AppError,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Prompt {
@@ -15,7 +18,7 @@ pub(crate) struct GetPromptsResponse {
 }
 
 pub(crate) async fn get_prompts() -> Result<Json<GetPromptsResponse>, AppError> {
-    let mocked_data = utils::read_mocked_data("prompts.json")?;
+    let mocked_data = utils::read_db(DbEntity::Prompts, "mock.json")?;
 
     let response = GetPromptsResponse {
         prompts: mocked_data,
@@ -34,7 +37,7 @@ pub(crate) struct User {
 }
 
 pub(crate) async fn get_user() -> Result<Json<User>, AppError> {
-    let mocked_data = utils::read_mocked_data("user.json")?;
+    let mocked_data = utils::read_db(DbEntity::Users, "mock.json")?;
 
     Ok(Json(mocked_data))
 }
@@ -74,7 +77,7 @@ pub(crate) struct GetStoriesResponse {
 }
 
 pub(crate) async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
-    let mocked_data = utils::read_mocked_data("stories.json")?;
+    let mocked_data = utils::read_db(DbEntity::Stories, "mock.json")?;
 
     let response = GetStoriesResponse {
         stories: mocked_data,
