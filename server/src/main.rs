@@ -9,6 +9,7 @@ use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
 mod handlers;
+mod models;
 mod utils;
 
 #[derive(Parser, Debug)]
@@ -19,11 +20,12 @@ struct Args {
     listener: SocketAddr,
 }
 
-pub struct AppError(StatusCode, anyhow::Error);
+#[derive(Debug)]
+pub struct AppError(StatusCode, String);
 
 impl From<anyhow::Error> for AppError {
     fn from(error: anyhow::Error) -> Self {
-        Self(StatusCode::INTERNAL_SERVER_ERROR, error)
+        Self(StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
     }
 }
 
@@ -44,10 +46,7 @@ async fn main() {
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
         .route("/user", get(handlers::get_user))
-        .route(
-            "/stories/previews",
-            get(handlers::stories::get_stories_previews),
-        )
+        .route("/stories", get(handlers::stories::get_stories))
         .route("/stories/:story_uuid", get(handlers::stories::get_story))
         .route("/story", post(handlers::stories::create_story))
         .layer(TraceLayer::new_for_http());

@@ -12,6 +12,7 @@ use crate::AppError;
 pub enum DbEntity {
     Prompts,
     Stories,
+    Content,
     Users,
 }
 

@@ -2,12 +2,18 @@
   "uuid": "e76ba6b7-2eda-4edc-b913-fb8736e62a28",
   "title": "Mexico City",
   "preview": {
+    "uuid": "e76ba6b7-2eda-4edc-b913-fb8736e62a28",
     "kind": "image",
     "src": "november_mexico",
     "description": "Our last day"
   },
   "content": [
-    { "kind": "image", "src": "november_mexico", "description": "Our last day" }
+    {
+      "uuid": "e76ba6b7-2eda-4edc-b913-fb8736e62a28",
+      "kind": "image",
+      "src": "november_mexico",
+      "description": "Our last day"
+    }
   ],
   "created_at": "2023-11-26T22:35:03.663533+00:00",
   "updated_at": "2023-11-26T22:35:03.663533+00:00"

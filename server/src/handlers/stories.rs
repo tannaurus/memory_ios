@@ -8,93 +8,118 @@ use crate::{
     AppError,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Story {
-    uuid: Uuid,
-    title: String,
-    preview: Content,
-    content: Vec<Content>,
-    created_at: String,
-    updated_at: String,
-}
+use crate::models;
 
-impl Into<StoryPreview> for Story {
-    fn into(self) -> StoryPreview {
-        StoryPreview {
-            uuid: self.uuid,
-            preview: self.preview,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-#[serde(rename_all = "snake_case")]
-pub enum Content {
-    Image(ImageContent),
-    Text(TextContent),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ImageContent {
-    src: String,
-    description: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextContent {
-    title: String,
-    description: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StoryPreview {
-    uuid: Uuid,
-    preview: Content,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetStoriesResponse {
-    stories: Vec<StoryPreview>,
-}
-
-pub async fn get_stories_previews() -> Result<Json<GetStoriesResponse>, AppError> {
-    let story_one = read_db(DbEntity::Stories, "e76ba6b7-2eda-4edc-b913-fb8736e62a28")?;
-    let story_two = read_db(DbEntity::Stories, "ff9a0564-8a50-4b37-a5de-cc1f41bf178d")?;
-
-    let response = GetStoriesResponse {
-        stories: vec![story_one, story_two],
-    };
-
-    Ok(Json(response))
-}
-
-pub async fn get_story(Path(story_uuid): Path<Uuid>) -> Result<Json<Story>, AppError> {
+pub async fn get_story(Path(story_uuid): Path<Uuid>) -> Result<Json<models::Story>, AppError> {
     let story = read_db(DbEntity::Stories, &story_uuid.to_string())?;
 
     Ok(Json(story))
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetStoriesResponse {
+    pub stories: Vec<models::Story>,
+}
+
+pub async fn get_stories() -> Result<Json<GetStoriesResponse>, AppError> {
+    let response = GetStoriesResponse {
+        stories: Vec::new(),
+    };
+    Ok(Json(response))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateStoryRequest {
     title: String,
-    preview: Content,
-    content: Vec<Content>,
+    content: Vec<models::ContentKind>,
 }
 
-pub async fn create_story(request: Json<CreateStoryRequest>) -> Result<Json<Story>, AppError> {
+pub async fn create_story(
+    request: Json<CreateStoryRequest>,
+) -> Result<Json<models::Story>, AppError> {
+    let now = Utc::now().to_rfc3339();
+
+    // generate db metadata and write to db
+    let content: Vec<models::Content> = request
+        .content
+        .clone()
+        .into_iter()
+        .map(|c| {
+            let uuid = Uuid::new_v4();
+            let c = models::Content {
+                uuid,
+                created_at: now.clone(),
+                updated_at: now.clone(),
+                content: c,
+            };
+            // unwrapping here to not going to overthink temporary code.
+            write_db(DbEntity::Content, &uuid.to_string(), &c).unwrap();
+            c
+        })
+        .collect();
+
     let uuid = Uuid::new_v4();
-    let created_at = Utc::now().to_rfc3339();
-    let updated_at = created_at.clone();
-    let story = Story {
+    let story = models::Story {
         uuid,
         title: request.title.clone(),
-        preview: request.preview.clone(),
-        content: request.content.clone(),
-        created_at,
-        updated_at,
+        content,
+        created_at: now.clone(),
+        updated_at: now.clone(),
     };
+
     write_db(DbEntity::Stories, &uuid.to_string(), &story)?;
 
     Ok(Json(story))
+}
+
+// pub async fn patch_story(request: Json<CreateStoryRequest>) -> Result<Json<Story>, AppError> {
+
+// }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use axum::Json;
+    use uuid::Uuid;
+
+    use crate::models::{ContentKind, TextContent};
+
+    use super::{create_story, get_stories, CreateStoryRequest};
+
+    fn build_story_request() -> CreateStoryRequest {
+        let content = ContentKind::Text(TextContent {
+            title: "A day in the life".into(),
+            body: "A picnic".into(),
+        });
+        CreateStoryRequest {
+            title: "Hello, world 👋".into(),
+            content: vec![content],
+        }
+    }
+
+    fn clean_up_story(story_uuid: Uuid) {
+        let story_location = format!("db/stories/{}.json", story_uuid);
+        fs::remove_file(story_location).unwrap()
+    }
+
+    #[tokio::test]
+    async fn can_create_story() {
+        let request = build_story_request();
+        let story = create_story(Json(request)).await.unwrap();
+
+        clean_up_story(story.uuid)
+    }
+
+    #[tokio::test]
+    async fn can_get_stories() {
+        let request = build_story_request();
+        let created_story = create_story(Json(request)).await.unwrap();
+
+        let response = get_stories().await.unwrap();
+
+        assert_eq!(response.stories.len(), 0);
+
+        clean_up_story(created_story.uuid)
+    }
 }
