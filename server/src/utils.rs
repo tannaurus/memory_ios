@@ -23,7 +23,7 @@ impl Display for DbEntity {
 
 /// Returns deserialized T, if found.
 /// Returns [AppError] if file does not exist.
-pub(crate) fn read_db<T>(kind: DbEntity, uuid: &str) -> Result<T, AppError>
+pub fn read_db<T>(kind: DbEntity, uuid: &str) -> Result<T, AppError>
 where
     T: DeserializeOwned,
 {

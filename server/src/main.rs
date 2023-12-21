@@ -14,7 +14,7 @@ struct Args {
     listener: SocketAddr,
 }
 
-struct AppError(StatusCode, anyhow::Error);
+pub struct AppError(StatusCode, anyhow::Error);
 
 impl From<anyhow::Error> for AppError {
     fn from(error: anyhow::Error) -> Self {
