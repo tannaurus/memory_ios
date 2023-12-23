@@ -4,9 +4,14 @@ use uuid::Uuid;
 
 use crate::model;
 
+pub enum ApiError {
+    Encode,
+    Decode,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
-    pub uuid: String,
+    pub uuid: Uuid,
     pub name: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -21,30 +26,55 @@ pub struct Story {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Story {
+    pub fn new(story: model::Story, content: Vec<model::Content>) -> Self {
+        let content = content.into_iter().map(|c| c.into()).collect();
+        Self {
+            uuid: story.uuid,
+            title: story.title,
+            content,
+            created_at: story.created_at,
+            updated_at: story.updated_at,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Content {
     pub uuid: Uuid,
-    pub content: ContentKind,
+    pub kind: String,
+    pub details: ContentDetails,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
+#[serde(untagged)]
 #[serde(rename_all = "snake_case")]
-pub enum ContentKind {
+pub enum ContentDetails {
     Image(ImageContent),
     Text(TextContent),
 }
 
-impl Into<model::ContentKind> for ContentKind {
-    fn into(self) -> model::ContentKind {
+impl ContentDetails {
+    /// Returns the 'kind' [String] of the [ContentKind] variant.
+    pub fn kind(&self) -> String {
+        format!("{:?}", self).to_lowercase()
+    }
+
+    pub fn details(&self) -> Result<String, ApiError> {
+        Ok(serde_json::to_string(self).map_err(|_| ApiError::Encode)?)
+    }
+}
+
+impl Into<model::ContentDetails> for ContentDetails {
+    fn into(self) -> model::ContentDetails {
         match self {
-            ContentKind::Image(image) => model::ContentKind::Image(model::ImageContent {
+            ContentDetails::Image(image) => model::ContentDetails::Image(model::ImageContent {
                 src: image.src,
                 description: image.description,
             }),
-            ContentKind::Text(text) => model::ContentKind::Text(model::TextContent {
+            ContentDetails::Text(text) => model::ContentDetails::Text(model::TextContent {
                 title: text.title,
                 body: text.body,
             }),
@@ -73,5 +103,5 @@ pub struct UpdateStoryRequest {
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateContentRequest {
     pub uuid: Uuid,
-    pub content: ContentKind,
+    pub content: ContentDetails,
 }

@@ -4,12 +4,13 @@ use uuid::Uuid;
 
 use crate::api;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct Content {
     pub id: u32,
     pub story_id: u32,
     pub uuid: Uuid,
-    pub content: ContentKind,
+    pub kind: String,
+    pub details: ContentDetails,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -18,7 +19,8 @@ impl Into<api::Content> for Content {
     fn into(self) -> api::Content {
         api::Content {
             uuid: self.uuid,
-            content: self.content.into(),
+            kind: self.kind,
+            details: self.details.into(),
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -26,21 +28,21 @@ impl Into<api::Content> for Content {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind")]
+#[serde(untagged)]
 #[serde(rename_all = "snake_case")]
-pub enum ContentKind {
+pub enum ContentDetails {
     Image(ImageContent),
     Text(TextContent),
 }
 
-impl Into<api::ContentKind> for ContentKind {
-    fn into(self) -> api::ContentKind {
+impl Into<api::ContentDetails> for ContentDetails {
+    fn into(self) -> api::ContentDetails {
         match self {
-            ContentKind::Image(image) => api::ContentKind::Image(api::ImageContent {
+            ContentDetails::Image(image) => api::ContentDetails::Image(api::ImageContent {
                 src: image.src,
                 description: image.description,
             }),
-            ContentKind::Text(text) => api::ContentKind::Text(api::TextContent {
+            ContentDetails::Text(text) => api::ContentDetails::Text(api::TextContent {
                 title: text.title,
                 body: text.body,
             }),

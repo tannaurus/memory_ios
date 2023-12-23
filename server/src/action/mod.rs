@@ -1,52 +1,92 @@
-use std::collections::HashMap;
-
 use axum::http::StatusCode;
-use chrono::Utc;
 use uuid::Uuid;
 
-use crate::{api, model, AppError};
+use crate::{
+    access::{self, AccessError},
+    api, model, AppError,
+};
 
-pub struct StoryUpdate {
-    pub title: Option<String>,
-    pub deleted: Option<bool>,
+pub enum ActionError {
+    AccessError(access::AccessError),
 }
 
-pub fn update_story(
+impl From<AccessError> for ActionError {
+    fn from(err: AccessError) -> Self {
+        Self::AccessError(err)
+    }
+}
+
+pub async fn create_story<A>(
+    db: &A,
+    title: String,
+    content: Vec<api::ContentDetails>,
+) -> Result<api::Story, ActionError>
+where
+    A: access::story::AccessStory,
+{
+    let story = db.create_story(title).await?;
+    let content = db.create_content(story.id, content).await?;
+
+    Ok(api::Story::new(story, content))
+}
+
+pub async fn get_story<A>(db: &A, story_uuid: Uuid) -> Result<api::Story, ActionError>
+where
+    A: access::story::AccessStory,
+{
+    let story = db.get_story_by_uuid(story_uuid).await?;
+    let content = db.get_story_content(story.id).await?;
+
+    Ok(api::Story::new(story, content))
+}
+
+pub async fn update_story<A>(
+    db: &A,
     mut story: model::Story,
-    updates: StoryUpdate,
-) -> Result<model::Story, AppError> {
-    if story.deleted {
-        return Err(AppError(
-            StatusCode::BAD_REQUEST,
-            "Story has been deleted.".into(),
-        ));
-    }
-
-    let now = Utc::now();
-
-    if let Some(title) = updates.title.clone() {
+    title: Option<String>,
+    deleted: Option<bool>,
+) -> Result<(), AppError>
+where
+    A: access::story::AccessStory,
+{
+    if let Some(title) = title.clone() {
         story.title = title;
-        story.updated_at = now.clone();
     }
 
-    if let Some(delete) = updates.deleted.clone() {
+    if let Some(delete) = deleted.clone() {
         story.deleted = delete;
-        story.updated_at = now.clone();
     }
 
-    Ok(story)
+    db.update_story(story).await?;
+
+    Ok(())
+}
+
+pub async fn delete_story<A>(db: &A, story_uuid: Uuid) -> Result<(), AppError>
+where
+    A: access::story::AccessStory,
+{
+    let mut story = db.get_story_by_uuid(story_uuid).await?;
+    story.deleted = true;
+
+    db.update_story(story).await?;
+
+    Ok(())
 }
 
 pub struct ContentUpdate {
     pub uuid: Uuid,
-    pub content: api::ContentKind,
+    pub content: api::ContentDetails,
 }
 
-pub fn update_content(
+pub async fn update_content<A>(
+    db: &A,
     story: &model::Story,
-    mut content: HashMap<Uuid, model::Content>,
     updates: Vec<ContentUpdate>,
-) -> Result<Vec<model::Content>, AppError> {
+) -> Result<(), AppError>
+where
+    A: access::story::AccessStory,
+{
     if story.deleted {
         return Err(AppError(
             StatusCode::BAD_REQUEST,
@@ -54,133 +94,10 @@ pub fn update_content(
         ));
     }
 
-    let now = Utc::now();
-
-    for content_update in updates.into_iter() {
-        let existing_content = content
-            .get(&content_update.uuid)
-            .ok_or(AppError(StatusCode::BAD_REQUEST, "Missing content".into()))?
-            .clone();
-
-        let updated_content = model::Content {
-            content: content_update.content.into(),
-            updated_at: now.clone(),
-            ..existing_content
-        };
-
-        content.insert(existing_content.uuid, updated_content);
+    for u in updates {
+        let content_id = db.get_content_by_uuid(u.uuid).await?.id;
+        db.update_content(content_id, u.content).await?;
     }
 
-    let response: Vec<model::Content> = content.into_values().collect();
-
-    Ok(response)
-}
-
-#[cfg(test)]
-mod tests {
-    use chrono::DateTime;
-    use std::{collections::HashMap, str::FromStr};
-    use uuid::Uuid;
-
-    use crate::{api, model};
-
-    #[test]
-    fn can_update_story_title() {
-        // Set up
-        let story = model::Story {
-            id: 1,
-            user_id: 1,
-            uuid: Uuid::from_str("7d18fe04-cc45-41ec-b899-1dd54bcfcf0b").unwrap(),
-            title: "Hello, world!".into(),
-            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            deleted: false,
-        };
-
-        // Test
-        let updated_title = "Goodbye, moon!".to_string();
-        let updates = super::StoryUpdate {
-            title: Some(updated_title.clone()),
-            deleted: None,
-        };
-
-        let updated_story = super::update_story(story.clone(), updates).unwrap();
-        assert_eq!(updated_story.title, updated_title);
-        assert_ne!(story.title, updated_story.title);
-        assert_ne!(story.updated_at, updated_story.updated_at);
-    }
-
-    #[test]
-    fn can_delete_story() {
-        // Set up
-        let story = model::Story {
-            id: 1,
-            user_id: 1,
-            uuid: Uuid::from_str("7d18fe04-cc45-41ec-b899-1dd54bcfcf0b").unwrap(),
-            title: "Hello, world!".into(),
-            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            deleted: false,
-        };
-
-        // Test
-        let updates = super::StoryUpdate {
-            title: None,
-            deleted: Some(true),
-        };
-
-        let updated_story = super::update_story(story.clone(), updates).unwrap();
-        assert_eq!(story.deleted, false);
-        assert_eq!(updated_story.deleted, true);
-        assert_ne!(story.updated_at, updated_story.updated_at);
-    }
-
-    #[test]
-    fn can_update_story_content() {
-        // Set up
-        let story = model::Story {
-            id: 1,
-            user_id: 1,
-            uuid: Uuid::from_str("7d18fe04-cc45-41ec-b899-1dd54bcfcf0b").unwrap(),
-            title: "Hello, world!".into(),
-            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            deleted: false,
-        };
-
-        let content = model::Content {
-            id: 1,
-            story_id: 1,
-            uuid: Uuid::from_str("56f2b949-f788-4146-a216-671d28d9acbf").unwrap(),
-            content: model::ContentKind::Text(model::TextContent {
-                title: "Hello, world!".into(),
-                body: "Something note worthy".into(),
-            }),
-            created_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-            updated_at: DateTime::from_str("2023-12-19T21:04:45.976885+00:00").unwrap(),
-        };
-
-        // Test
-        let title = "Goodbye, moon!".to_string();
-        let body = "It's a long way home".to_string();
-        let updates = vec![super::ContentUpdate {
-            uuid: content.uuid.clone(),
-            content: api::ContentKind::Text(api::TextContent {
-                title: title.clone(),
-                body: body.clone(),
-            }),
-        }];
-
-        let mut content_map = HashMap::new();
-        content_map.insert(content.uuid, content);
-
-        let updated_content = super::update_content(&story, content_map, updates).unwrap();
-        match updated_content[0].clone().content {
-            model::ContentKind::Text(story) => {
-                assert_eq!(story.title, title);
-                assert_eq!(story.body, body);
-            }
-            _ => panic!("Bad ending"),
-        }
-    }
+    Ok(())
 }

@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 mod content;
 pub use content::*;
+use uuid::Uuid;
 
 use crate::api;
 
@@ -18,23 +18,10 @@ pub struct Story {
     pub deleted: bool,
 }
 
-impl Story {
-    pub fn into_api_story(self, content: Vec<content::Content>) -> api::Story {
-        let api_content = content.into_iter().map(|c| c.into()).collect();
-        api::Story {
-            uuid: self.uuid,
-            title: self.title,
-            content: api_content,
-            created_at: self.created_at,
-            updated_at: self.updated_at,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: u32,
-    pub uuid: String,
+    pub uuid: Uuid,
     pub name: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

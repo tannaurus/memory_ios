@@ -6,7 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use serde_json::json;
-use sqlx::{mysql::MySqlPoolOptions, MySqlPool};
+use sqlx::mysql::MySqlPoolOptions;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 
@@ -16,6 +16,8 @@ mod api;
 mod auth;
 mod handlers;
 mod model;
+
+use access::MemoryDb;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -51,9 +53,26 @@ impl IntoResponse for AppError {
     }
 }
 
+impl From<access::AccessError> for AppError {
+    fn from(_: access::AccessError) -> Self {
+        AppError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error".into(),
+        )
+    }
+}
+
+impl From<action::ActionError> for AppError {
+    fn from(err: action::ActionError) -> Self {
+        match err {
+            action::ActionError::AccessError(err) => err.into(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct AppContext {
-    pub db: MySqlPool,
+    pub db: MemoryDb,
     pub auth: auth::AuthState,
 }
 
@@ -91,7 +110,7 @@ async fn main() {
     let auth_state = auth::AuthState { user: mocked_user };
 
     let context = AppContext {
-        db: pool,
+        db: MemoryDb::new(pool),
         auth: auth_state,
     };
 
