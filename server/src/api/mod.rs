@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::model;
 
+#[derive(Debug)]
 pub enum ApiError {
     Encode,
     Decode,

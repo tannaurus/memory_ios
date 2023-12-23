@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::model;
 
+#[derive(Debug)]
 pub enum SchemaError {
     ParseUuid,
     ParseDeleted,
@@ -16,13 +17,15 @@ pub enum SchemaError {
 }
 
 impl From<uuid::Error> for SchemaError {
-    fn from(_: uuid::Error) -> Self {
+    fn from(err: uuid::Error) -> Self {
+        println!("{:?}", err);
         Self::ParseUuid
     }
 }
 
 impl From<serde_json::Error> for SchemaError {
-    fn from(_: serde_json::Error) -> Self {
+    fn from(err: serde_json::Error) -> Self {
+        println!("{:?}", err);
         Self::ParseJson
     }
 }

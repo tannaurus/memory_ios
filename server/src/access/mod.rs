@@ -6,6 +6,7 @@ mod schema;
 pub mod story;
 pub mod user;
 
+#[derive(Debug)]
 pub enum AccessError {
     Sql(sqlx::Error),
     Api(api::ApiError),

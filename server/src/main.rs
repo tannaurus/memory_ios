@@ -54,7 +54,8 @@ impl IntoResponse for AppError {
 }
 
 impl From<access::AccessError> for AppError {
-    fn from(_: access::AccessError) -> Self {
+    fn from(err: access::AccessError) -> Self {
+        println!("{:?}", err);
         AppError(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Internal server error".into(),
