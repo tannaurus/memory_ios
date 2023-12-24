@@ -37,3 +37,24 @@ impl Into<api::User> for User {
         }
     }
 }
+
+pub struct Prompt {
+    pub id: u32,
+    pub uuid: Uuid,
+    pub name: String,
+    pub description: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Into<api::Prompt> for Prompt {
+    fn into(self) -> api::Prompt {
+        api::Prompt {
+            uuid: self.uuid,
+            name: self.name,
+            description: self.description,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        }
+    }
+}

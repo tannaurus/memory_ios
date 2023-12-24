@@ -2,6 +2,7 @@ use sqlx::MySqlPool;
 
 use crate::api;
 
+pub mod prompts;
 mod schema;
 pub mod story;
 pub mod user;

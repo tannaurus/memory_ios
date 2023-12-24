@@ -106,3 +106,12 @@ pub struct UpdateContentRequest {
     pub uuid: Uuid,
     pub content: ContentDetails,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Prompt {
+    pub uuid: Uuid,
+    pub name: String,
+    pub description: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

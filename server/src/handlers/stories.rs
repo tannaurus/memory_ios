@@ -2,8 +2,6 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-
-use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -54,7 +52,6 @@ impl Into<action::ContentUpdate> for UpdateContentRequest {
     }
 }
 
-#[debug_handler]
 pub async fn handle_update_story(
     ctx: State<AppContext>,
     story_uuid: Path<Uuid>,

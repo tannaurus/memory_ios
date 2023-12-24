@@ -6,6 +6,8 @@ use crate::{
     api, model, AppError,
 };
 
+pub mod prompts;
+
 pub enum ActionError {
     AccessError(access::AccessError),
 }

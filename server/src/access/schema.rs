@@ -110,3 +110,27 @@ impl TryFrom<Content> for model::Content {
         })
     }
 }
+
+pub struct Prompt {
+    pub id: u32,
+    pub uuid: String,
+    pub name: String,
+    pub description: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl TryFrom<Prompt> for model::Prompt {
+    type Error = SchemaError;
+
+    fn try_from(p: Prompt) -> Result<Self, Self::Error> {
+        Ok(model::Prompt {
+            id: p.id,
+            uuid: Uuid::from_str(&p.uuid)?,
+            name: p.name,
+            description: p.description,
+            created_at: p.created_at,
+            updated_at: p.updated_at,
+        })
+    }
+}
