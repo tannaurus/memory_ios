@@ -17,8 +17,15 @@ pub async fn handle_create_story(
     ctx: State<AppContext>,
     request: Json<CreateStoryRequest>,
 ) -> Result<Json<api::Story>, AppError> {
-    let story =
-        action::create_story(&ctx.db, request.title.clone(), request.content.clone()).await?;
+    let user = ctx.auth.authenticated()?;
+
+    let story = action::create_story(
+        &ctx.db,
+        user,
+        request.title.clone(),
+        request.content.clone(),
+    )
+    .await?;
 
     Ok(Json(story))
 }
@@ -27,7 +34,9 @@ pub async fn handle_get_story(
     ctx: State<AppContext>,
     Path(story_uuid): Path<Uuid>,
 ) -> Result<Json<api::Story>, AppError> {
-    let story = action::get_story(&ctx.db, story_uuid).await?;
+    let user = ctx.auth.authenticated()?;
+
+    let story = action::get_story(&ctx.db, user, story_uuid).await?;
     Ok(Json(story))
 }
 
@@ -57,9 +66,11 @@ pub async fn handle_update_story(
     story_uuid: Path<Uuid>,
     request: Json<UpdateStoryRequest>,
 ) -> Result<Json<api::Story>, AppError> {
-    let story = ctx.db.get_story_by_uuid(story_uuid.0).await?;
+    let user = ctx.auth.authenticated()?;
 
-    action::update_story(&ctx.db, story.clone(), request.title.clone(), None).await?;
+    let story = ctx.db.get_story_by_uuid(user, story_uuid.0).await?;
+
+    action::update_story(&ctx.db, user, story.clone(), request.title.clone(), None).await?;
 
     let content_updates = request
         .content
@@ -70,7 +81,7 @@ pub async fn handle_update_story(
 
     action::update_content(&ctx.db, &story, content_updates).await?;
 
-    let story = action::get_story(&ctx.db, story_uuid.0).await?;
+    let story = action::get_story(&ctx.db, user, story_uuid.0).await?;
 
     Ok(Json(story))
 }
@@ -79,6 +90,8 @@ pub async fn handle_delete_story(
     ctx: State<AppContext>,
     story_uuid: Path<Uuid>,
 ) -> Result<Json<()>, AppError> {
-    let response = action::delete_story(&ctx.db, story_uuid.0).await?;
+    let user = ctx.auth.authenticated()?;
+
+    let response = action::delete_story(&ctx.db, user, story_uuid.0).await?;
     Ok(Json(response))
 }

@@ -1,26 +1,35 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::{
-    api::{self},
-    model,
-};
+use crate::{api, auth::VerifiedUser, model};
 
 use super::schema;
 use super::AccessError;
 
 #[async_trait]
 pub trait AccessStory {
-    async fn create_story(&self, title: String) -> Result<model::Story, AccessError>;
+    async fn create_story(
+        &self,
+        user: &VerifiedUser,
+        title: String,
+    ) -> Result<model::Story, AccessError>;
     async fn create_content(
         &self,
         story_id: u32,
         content: Vec<api::ContentDetails>,
     ) -> Result<Vec<model::Content>, AccessError>;
-    async fn get_story_by_uuid(&self, story_uuid: Uuid) -> Result<model::Story, AccessError>;
+    async fn get_story_by_uuid(
+        &self,
+        user: &VerifiedUser,
+        story_uuid: Uuid,
+    ) -> Result<model::Story, AccessError>;
     async fn get_content_by_uuid(&self, content_uuid: Uuid) -> Result<model::Content, AccessError>;
     async fn get_story_content(&self, story_id: u32) -> Result<Vec<model::Content>, AccessError>;
-    async fn update_story(&self, story_updates: model::Story) -> Result<model::Story, AccessError>;
+    async fn update_story(
+        &self,
+        user: &VerifiedUser,
+        story_updates: model::Story,
+    ) -> Result<model::Story, AccessError>;
     async fn update_content(
         &self,
         content_id: u32,
@@ -31,14 +40,19 @@ pub trait AccessStory {
 #[async_trait]
 impl AccessStory for super::MemoryDb {
     /// Creates a row in the `story` table.
-    /// Musted be used with `create_content` to populate the corresponding `content` rows.
-    async fn create_story(&self, title: String) -> Result<model::Story, AccessError> {
+    /// Must be used with `create_content` to populate the corresponding `content` rows.
+    async fn create_story(
+        &self,
+        user: &VerifiedUser,
+        title: String,
+    ) -> Result<model::Story, AccessError> {
         let story_uuid = Uuid::new_v4();
         let story_id = sqlx::query!(
-            "INSERT INTO stories (uuid, title, deleted) VALUES (?, ?, ?)",
+            "INSERT INTO stories (uuid, title, deleted, user_id) VALUES (?, ?, ?, ?)",
             story_uuid.to_string(),
             title,
-            false
+            false,
+            user.id()?
         )
         .execute(&self.inner)
         .await
@@ -99,10 +113,15 @@ impl AccessStory for super::MemoryDb {
 
     /// Returns one story that matches the provided story_uuid.
     /// For the story's content, see `get_story_content`
-    async fn get_story_by_uuid(&self, story_uuid: Uuid) -> Result<model::Story, AccessError> {
+    async fn get_story_by_uuid(
+        &self,
+        user: &VerifiedUser,
+        story_uuid: Uuid,
+    ) -> Result<model::Story, AccessError> {
         let story = sqlx::query_as!(
             schema::Story,
-            "SELECT * FROM stories WHERE uuid = ?",
+            "SELECT * FROM stories WHERE user_id = ? AND uuid = ?",
+            user.id()?,
             story_uuid.to_string()
         )
         .fetch_one(&self.inner)
@@ -145,12 +164,17 @@ impl AccessStory for super::MemoryDb {
 
     /// References the provided story [story_updates] to determine what updates to the row should be made.
     /// Only the row's `title` and `deleted` columns will be updated, if changed.
-    async fn update_story(&self, story_updates: model::Story) -> Result<model::Story, AccessError> {
+    async fn update_story(
+        &self,
+        user: &VerifiedUser,
+        story_updates: model::Story,
+    ) -> Result<model::Story, AccessError> {
         let story_id = sqlx::query!(
-            "UPDATE stories SET title = ?, deleted = ? WHERE id = ?",
+            "UPDATE stories SET title = ?, deleted = ? WHERE id = ? AND user_id = ?",
             story_updates.title,
             story_updates.deleted,
             story_updates.id,
+            user.id()?
         )
         .execute(&self.inner)
         .await?

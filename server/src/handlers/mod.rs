@@ -1,13 +1,10 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+use axum::{extract::State, Json};
+use serde::Serialize;
 
-use crate::{access::user::AccessUser, action, api, AppContext, AppError};
+use crate::{action, api, AppContext, AppError};
 
-pub mod stories;
+pub mod story;
+pub mod user;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct GetPromptsResponse {
@@ -22,27 +19,4 @@ pub async fn get_prompts(ctx: State<AppContext>) -> Result<Json<GetPromptsRespon
         .collect();
 
     Ok(Json(GetPromptsResponse { prompts }))
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateUserRequest {
-    pub name: String,
-}
-
-pub async fn create_user(
-    ctx: State<AppContext>,
-    request: Json<CreateUserRequest>,
-) -> Result<Json<api::User>, AppError> {
-    let user = ctx.db.create_user(request.name.clone()).await?;
-
-    Ok(Json(user.into()))
-}
-
-pub async fn get_user(
-    ctx: State<AppContext>,
-    uuid: Path<Uuid>,
-) -> Result<Json<api::User>, AppError> {
-    let user = ctx.db.get_user(uuid.0).await?;
-
-    Ok(Json(user.into()))
 }

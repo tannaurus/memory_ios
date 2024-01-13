@@ -1,6 +1,6 @@
 use sqlx::MySqlPool;
 
-use crate::api;
+use crate::{api, AppError};
 
 pub mod prompts;
 mod schema;
@@ -12,6 +12,13 @@ pub enum AccessError {
     Sql(sqlx::Error),
     Api(api::ApiError),
     Schema(schema::SchemaError),
+    App(AppError),
+}
+
+impl From<AppError> for AccessError {
+    fn from(err: AppError) -> Self {
+        Self::App(err)
+    }
 }
 
 impl From<schema::SchemaError> for AccessError {

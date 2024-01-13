@@ -3,7 +3,9 @@ use uuid::Uuid;
 
 use crate::{
     access::{self, AccessError},
-    api, model, AppError,
+    api,
+    auth::VerifiedUser,
+    model, AppError,
 };
 
 pub mod prompts;
@@ -20,23 +22,28 @@ impl From<AccessError> for ActionError {
 
 pub async fn create_story<A>(
     db: &A,
+    user: &VerifiedUser,
     title: String,
     content: Vec<api::ContentDetails>,
 ) -> Result<api::Story, ActionError>
 where
     A: access::story::AccessStory,
 {
-    let story = db.create_story(title).await?;
+    let story = db.create_story(user, title).await?;
     let content = db.create_content(story.id, content).await?;
 
     Ok(api::Story::new(story, content))
 }
 
-pub async fn get_story<A>(db: &A, story_uuid: Uuid) -> Result<api::Story, ActionError>
+pub async fn get_story<A>(
+    db: &A,
+    user: &VerifiedUser,
+    story_uuid: Uuid,
+) -> Result<api::Story, ActionError>
 where
     A: access::story::AccessStory,
 {
-    let story = db.get_story_by_uuid(story_uuid).await?;
+    let story = db.get_story_by_uuid(user, story_uuid).await?;
     let content = db.get_story_content(story.id).await?;
 
     Ok(api::Story::new(story, content))
@@ -44,6 +51,7 @@ where
 
 pub async fn update_story<A>(
     db: &A,
+    user: &VerifiedUser,
     mut story: model::Story,
     title: Option<String>,
     deleted: Option<bool>,
@@ -59,19 +67,19 @@ where
         story.deleted = delete;
     }
 
-    db.update_story(story).await?;
+    db.update_story(user, story).await?;
 
     Ok(())
 }
 
-pub async fn delete_story<A>(db: &A, story_uuid: Uuid) -> Result<(), AppError>
+pub async fn delete_story<A>(db: &A, user: &VerifiedUser, story_uuid: Uuid) -> Result<(), AppError>
 where
     A: access::story::AccessStory,
 {
-    let mut story = db.get_story_by_uuid(story_uuid).await?;
+    let mut story = db.get_story_by_uuid(user, story_uuid).await?;
     story.deleted = true;
 
-    db.update_story(story).await?;
+    db.update_story(user, story).await?;
 
     Ok(())
 }

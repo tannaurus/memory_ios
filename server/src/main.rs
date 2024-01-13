@@ -5,7 +5,6 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use serde_json::json;
 use sqlx::mysql::MySqlPoolOptions;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
@@ -41,6 +40,8 @@ struct Args {
 #[derive(Debug)]
 pub struct AppError(StatusCode, String);
 
+pub type AppResult<T> = Result<T, AppError>;
+
 impl From<anyhow::Error> for AppError {
     fn from(error: anyhow::Error) -> Self {
         Self(StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
@@ -70,7 +71,6 @@ impl From<action::ActionError> for AppError {
         }
     }
 }
-
 #[derive(Clone)]
 pub struct AppContext {
     pub db: MemoryDb,
@@ -98,17 +98,7 @@ async fn main() {
 
     sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 
-    let mocked_user: model::User = {
-        let user_json = json!({
-            "id": 1,
-            "uuid": "6c81e345-1ab3-463b-8aa2-916da81c1d0c",
-            "name": "Tanner Gill",
-            "created_at": "2023-12-19T21:04:45.976885+00:00",
-            "updated_at": "2023-12-19T21:04:45.976885+00:00"
-        });
-        serde_json::from_value(user_json).unwrap()
-    };
-    let auth_state = auth::AuthState { user: mocked_user };
+    let auth_state = auth::AuthState::new();
 
     let context = AppContext {
         db: MemoryDb::new(pool),
@@ -117,26 +107,25 @@ async fn main() {
 
     let app = Router::new()
         .route("/prompts", get(handlers::get_prompts))
-        .route("/user", post(handlers::create_user))
-        .route("/user/:user_uuid", get(handlers::get_user))
+        .route("/user", post(handlers::user::create_user))
+        .route("/user", get(handlers::user::get_verified_user))
         .route(
             "/stories/:story_uuid",
-            get(handlers::stories::handle_get_story),
+            get(handlers::story::handle_get_story),
         )
-        .route("/story", post(handlers::stories::handle_create_story))
+        .route("/story", post(handlers::story::handle_create_story))
         .route(
             "/story/:story_uuid",
-            delete(handlers::stories::handle_delete_story),
+            delete(handlers::story::handle_delete_story),
         )
         .route(
             "/story/:story_uuid",
-            put(handlers::stories::handle_update_story),
+            put(handlers::story::handle_update_story),
         )
         .layer(TraceLayer::new_for_http())
         .with_state(context);
 
     println!("Listening on {} 🚀", &args.listener);
-
     axum::Server::bind(&args.listener)
         .serve(app.into_make_service())
         .await
